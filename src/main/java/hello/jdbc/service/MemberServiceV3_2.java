@@ -3,40 +3,38 @@ package hello.jdbc.service;
 import java.sql.SQLException;
 
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.MemberRepositoryV3;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 트랜잭션 - 트랜잭션 매니저
+ * 트랜잭션 - 트랜잭션 템플릿
  */
 @Slf4j
-@RequiredArgsConstructor
-public class MemberServiceV3_1 {
+public class MemberServiceV3_2 {
+
+	private final TransactionTemplate txTemplate;
 
 	private final MemberRepositoryV3 memberRepository;
 
-	private final PlatformTransactionManager transactionManager;
+	public MemberServiceV3_2(PlatformTransactionManager transactionManager, MemberRepositoryV3 memberRepository) {
+		this.txTemplate = new TransactionTemplate(transactionManager);
+		this.memberRepository = memberRepository;
+	}
 
 	public void accountTransfer(String fromId, String toId, int money) {
-		// 트랜잭션 시작
-		TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
 
-		try {
+		txTemplate.executeWithoutResult((status) -> {
+			try {
+				// 비즈니스 로직
+				bizLogic(fromId, toId, money);
 
-			// 비즈니스 로직
-			bizLogic(fromId, toId, money);
-
-			transactionManager.commit(status);
-
-		} catch (Exception e) {
-			transactionManager.rollback(status);
-			throw new IllegalStateException(e);
-		}
+			} catch (Exception e) {
+				throw new IllegalStateException(e);
+			}
+		});
 
 	}
 
